@@ -19,6 +19,9 @@ on_error() {
 		--exit-code "$exitCode"
 }
 
+wait_for_docker() {}
+
+
 trap 'on_error $LINENO' ERR
 
 INSTANCE_ID=$(/opt/aws/bin/ec2-metadata --instance-id | cut -d " " -f 2)
@@ -32,9 +35,26 @@ cwlogs = cwlogs
 region = $AWS_REGION
 EOF
 
+DOCKER_RESTART=false
+
+# conditionally set debug in docker
+if [[ "${BUILDKITE_STACK_DEBUG:-false}" == "true" ]] ; then
+  cat << EOF > /etc/docker/daemon.json
+{
+    "debug": true
+}
+EOF
+  DOCKER_RESTART=true
+fi
+
 if [[ "${DOCKER_USERNS_REMAP:-false}" == "true" ]] ; then
 	echo "Enabling docker userns-remap"
 	cp /etc/sysconfig/docker.userns-remap /etc/sysconfig/docker
+  DOCKER_RESTART=true
+fi
+
+if [[ "${DOCKER_RESTART}" == "true" ]] ; then
+	echo "Restarting docker"
 	service docker restart
 fi
 
@@ -97,6 +117,7 @@ bootstrap-script="${BOOTSTRAP_SCRIPT}"
 hooks-path=/etc/buildkite-agent/hooks
 build-path=/var/lib/buildkite-agent/builds
 plugins-path=/var/lib/buildkite-agent/plugins
+debug=${STACK_DEBUG:-false}
 EOF
 
 chown buildkite-agent: /etc/buildkite-agent/buildkite-agent.cfg
