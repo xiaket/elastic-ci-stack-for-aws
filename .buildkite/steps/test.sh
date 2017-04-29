@@ -117,7 +117,7 @@ aws cloudformation create-stack \
   --output text \
   --stack-name "$stack_name" \
   --disable-rollback \
-  --template-body "file://${PWD}/buildkite-elastic.yml" \
+  --template-body "file://${PWD}/stacks/buildkite-elastic.yml" \
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
   --parameters "$(cat config.json)"
 
