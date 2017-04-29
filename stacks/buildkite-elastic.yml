@@ -1,4 +1,6 @@
-## Provides the infrastructure for a scalable buildkite cluster
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Buildkite stack"
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -207,43 +209,49 @@ Parameters:
 
 Outputs:
   SecretsBucket:
-    Value: !If [CreateSecretsBucket, $(ManagedSecretsBucket), $(SecretsBucket)]
+    Value: !If [CreateSecretsBucket, !Ref ManagedSecretsBucket, !Ref SecretsBucket]
+
+  AutoScalingGroupName:
+    Value: !Ref AgentAutoScaleGroup
 
 Conditions:
-    UseSpotInstances:
-      !Not [ !Equals [ $(SpotPrice), 0 ] ]
+  UseSpotInstances:
+    !Not [ !Equals [ !Ref SpotPrice, 0 ] ]
 
-    CreateVpcResources:
-      !Equals [ $(VpcId), "" ]
+  CreateVpcResources:
+    !Equals [ !Ref VpcId, "" ]
 
-    CreateSecurityGroup:
-      !Equals [ $(SecurityGroupId), "" ]
+  CreateSecurityGroup:
+    !Equals [ !Ref SecurityGroupId, "" ]
 
-    CreateSecretsBucket:
-      !Equals [ $(SecretsBucket), "" ]
+  CreateSecretsBucket:
+    !Equals [ !Ref SecretsBucket, "" ]
 
-    UseSpecifiedAvailabilityZones:
-      !Not [ !Equals [ !Join [ "", $(AvailabilityZones) ], "" ]  ]
+  UseSpecifiedAvailabilityZones:
+    !Not [ !Equals [ !Join [ "", !Ref AvailabilityZones ], "" ]  ]
 
-    UseArtifactsBucket:
-      !Not [ !Equals [ $(ArtifactsBucket), "" ] ]
+  UseArtifactsBucket:
+    !Not [ !Equals [ !Ref ArtifactsBucket, "" ] ]
 
-    UseDefaultAMI:
-      !Equals [ $(ImageId), "" ]
+  UseDefaultAMI:
+    !Equals [ !Ref ImageId, "" ]
 
-    UseManagedPolicyARN:
-      !Not [ !Equals [ $(ManagedPolicyARN), "" ] ]
+  UseManagedPolicyARN:
+    !Not [ !Equals [ !Ref ManagedPolicyARN, "" ] ]
 
-    UseECR:
-      !Not [ !Equals [ $(ECRAccessPolicy), "none" ] ]
+  UseECR:
+    !Not [ !Equals [ !Ref ECRAccessPolicy, "none" ] ]
 
-    UseAutoscaling:
-      !Not [ !Equals [ $(MaxSize), $(MinSize) ] ]
+  UseAutoscaling:
+    !Not [ !Equals [ !Ref MaxSize, !Ref MinSize ] ]
 
-    CreateMetricsStack:
-      !And [ Condition: UseAutoscaling, !Not [ !Equals [ $(BuildkiteApiAccessToken), "" ] ] ]
+  CreateMetricsStack:
+    !And [ Condition: UseAutoscaling, !Not [ !Equals [ !Ref BuildkiteApiAccessToken, "" ] ] ]
 
 Mappings:
+  AWSRegion2AMI:
+    us-east-1     : { AMI: "" }
+
   ECRManagedPolicy:
     none      : { Policy: '' }
     readonly  : { Policy: 'arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly' }
@@ -272,15 +280,15 @@ Resources:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Path: /
-      Roles: [ $(IAMRole) ]
+      Roles: [ !Ref IAMRole ]
 
   IAMRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: "$(AWS::StackName)-Role"
+      RoleName: !Sub "${AWS::StackName}-Role"
       ManagedPolicyArns:
-        - !If [ UseManagedPolicyARN, $(ManagedPolicyARN), '$(AWS::NoValue)' ]
-        - !If [ UseECR, '$(ECRManagedPolicy[$(ECRAccessPolicy)][Policy])', '$(AWS::NoValue)' ]
+        - !If [ UseManagedPolicyARN, !Ref ManagedPolicyARN, !Ref 'AWS::NoValue' ]
+        - !If [ UseECR, !FindInMap [ECRManagedPolicy, !Ref ECRAccessPolicy, Policy], !Ref 'AWS::NoValue' ]
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
@@ -315,7 +323,7 @@ Resources:
             Resource: "*"
 
       Roles:
-        - $(IAMRole)
+        - !Ref IAMRole
 
   ManagedSecretsBucket:
     Type: AWS::S3::Bucket
@@ -339,10 +347,16 @@ Resources:
               - s3:Get
               - s3:List*
             Resource:
-              - !If [CreateSecretsBucket, "arn:aws:s3:::$(ManagedSecretsBucket)/*", "arn:aws:s3:::$(SecretsBucket)/*"]
-              - !If [CreateSecretsBucket, "arn:aws:s3:::$(ManagedSecretsBucket)", "arn:aws:s3:::$(SecretsBucket)"]
+              - !If
+                - CreateSecretsBucket
+                - !Sub "arn:aws:s3:::${ManagedSecretsBucket}/*"
+                - !Sub "arn:aws:s3:::${SecretsBucket}/*"
+              - !If
+                - CreateSecretsBucket
+                - !Sub "arn:aws:s3:::${ManagedSecretsBucket}"
+                - !Sub "arn:aws:s3:::${SecretsBucket}"
       Roles:
-        - $(IAMRole)
+        - !Ref IAMRole
 
   ArtifactsBucketPolicies:
     Type: AWS::IAM::Policy
@@ -357,43 +371,45 @@ Resources:
               - s3:List*
               - s3:Get*
             Resource:
-              - "arn:aws:s3:::$(ArtifactsBucket)/*"
-              - "arn:aws:s3:::$(ArtifactsBucket)"
+              - !Sub "arn:aws:s3:::${ArtifactsBucket}/*"
+              - !Sub "arn:aws:s3:::${ArtifactsBucket}"
       Roles:
-        - $(IAMRole)
+        - !Ref IAMRole
 
   AgentLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
-      AssociatePublicIpAddress: $(AssociatePublicIpAddress)
-      SecurityGroups: [ !If [ "CreateSecurityGroup", $(SecurityGroup), $(SecurityGroupId) ] ]
-      KeyName : $(KeyName)
-      IamInstanceProfile: $(IAMInstanceProfile)
-      InstanceType: $(InstanceType)
-      SpotPrice: !If [ "UseSpotInstances", $(SpotPrice), '$(AWS::NoValue)' ]
+      AssociatePublicIpAddress: !Ref AssociatePublicIpAddress
+      SecurityGroups: [ !If [ "CreateSecurityGroup", !Ref SecurityGroup, !Ref SecurityGroupId ] ]
+      KeyName : !Ref KeyName
+      IamInstanceProfile: !Ref IAMInstanceProfile
+      InstanceType: !Ref InstanceType
+      SpotPrice: !If [ "UseSpotInstances", !Ref SpotPrice, !Ref 'AWS::NoValue' ]
       ImageId : !If [
         "UseDefaultAMI",
-        "$(AWSRegion2AMI[$(AWS::Region)][AMI])",
-        $(ImageId)
+        !FindInMap [ AWSRegion2AMI, !Ref 'AWS::Region', AMI ],
+        !Ref ImageId
       ]
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
-          Ebs: { VolumeSize: $(RootVolumeSize), VolumeType: gp2 }
-      UserData: !Base64 |
-        #!/bin/bash -xv
-        BUILDKITE_STACK_NAME="$(AWS::StackName)" \
-        BUILDKITE_STACK_VERSION=dev \
-        BUILDKITE_SECRETS_BUCKET="$(SecretsBucket)" \
-        BUILDKITE_AGENT_TOKEN="$(BuildkiteAgentToken)" \
-        BUILDKITE_AGENTS_PER_INSTANCE="$(AgentsPerInstance)" \
-        BUILDKITE_AGENT_RELEASE="$(BuildkiteAgentRelease)" \
-        BUILDKITE_QUEUE="$(BuildkiteQueue)" \
-        BUILDKITE_ELASTIC_BOOTSTRAP_SCRIPT="$(BootstrapScriptUrl)" \
-        BUILDKITE_AUTHORIZED_USERS_URL="$(AuthorizedUsersUrl)" \
-        BUILDKITE_ECR_POLICY=$(ECRAccessPolicy) \
-        AWS_DEFAULT_REGION=$(AWS::Region) \
-        AWS_REGION=$(AWS::Region) \
-          /usr/local/bin/bk-install-elastic-stack.sh
+          Ebs: { VolumeSize: !Ref RootVolumeSize, VolumeType: gp2 }
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xv
+            BUILDKITE_STACK_NAME="${AWS::StackName}" \
+            BUILDKITE_STACK_VERSION=dev \
+            BUILDKITE_SECRETS_BUCKET="${SecretsBucket}" \
+            BUILDKITE_AGENT_TOKEN="${BuildkiteAgentToken}" \
+            BUILDKITE_AGENTS_PER_INSTANCE="${AgentsPerInstance}" \
+            BUILDKITE_AGENT_RELEASE="${BuildkiteAgentRelease}" \
+            BUILDKITE_QUEUE="${BuildkiteQueue}" \
+            BUILDKITE_ELASTIC_BOOTSTRAP_SCRIPT="${BootstrapScriptUrl}" \
+            BUILDKITE_AUTHORIZED_USERS_URL="${AuthorizedUsersUrl}" \
+            BUILDKITE_ECR_POLICY=${ECRAccessPolicy} \
+            AWS_DEFAULT_REGION=${AWS::Region} \
+            AWS_REGION=${AWS::Region} \
+              /usr/local/bin/bk-install-elastic-stack.sh
 
   # XXX: We don't even want a topic or role, but CloudFormation requires them
   # to create a lifecycle hook.
@@ -416,29 +432,29 @@ Resources:
               - Effect: Allow
                 Action:
                   - sns:Publish
-                Resource: $(AgentLifecycleTopic)
+                Resource: !Ref AgentLifecycleTopic
       Path: /
 
   AgentLifecycleHook:
     Type: AWS::AutoScaling::LifecycleHook
     Properties:
-      AutoScalingGroupName: $(AgentAutoScaleGroup)
+      AutoScalingGroupName: !Ref AgentAutoScaleGroup
       LifecycleTransition: autoscaling:EC2_INSTANCE_TERMINATING
       DefaultResult: CONTINUE
-      NotificationTargetARN: $(AgentLifecycleTopic)
-      RoleARN: $(AgentLifecycleHookRole[Arn])
+      NotificationTargetARN: !Ref AgentLifecycleTopic
+      RoleARN: !GetAtt AgentLifecycleHookRole.Arn
 
   AgentAutoScaleGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       VPCZoneIdentifier: !If [
         "CreateVpcResources",
-        [ $(Subnet0), $(Subnet1) ],
-        $(Subnets)
+        [ !Ref Subnet0, !Ref Subnet1 ],
+        !Ref Subnets
       ]
-      LaunchConfigurationName: $(AgentLaunchConfiguration)
-      MinSize: $(MinSize)
-      MaxSize: $(MaxSize)
+      LaunchConfigurationName: !Ref AgentLaunchConfiguration
+      MinSize: !Ref MinSize
+      MaxSize: !Ref MaxSize
       MetricsCollection:
         - Granularity: 1Minute
           Metrics:
@@ -458,16 +474,16 @@ Resources:
           Value: buildkite-agent
           PropagateAtLaunch: true
         - Key: BuildkiteAgentRelease
-          Value: $(BuildkiteAgentRelease)
+          Value: !Ref BuildkiteAgentRelease
           PropagateAtLaunch: true
         - Key: BuildkiteQueue
-          Value: $(BuildkiteQueue)
+          Value: !Ref BuildkiteQueue
           PropagateAtLaunch: true
 
     CreationPolicy:
       ResourceSignal:
         Timeout: PT5M
-        Count: $(MinSize)
+        Count: !Ref MinSize
     UpdatePolicy:
       AutoScalingReplacingUpdate:
         WillReplace: true
@@ -477,7 +493,7 @@ Resources:
     Condition: CreateSecurityGroup
     Properties:
       GroupDescription: Enable access to SSH
-      VpcId: !If [ "CreateVpcResources", $(Vpc), $(VpcId) ]
+      VpcId: !If [ "CreateVpcResources", !Ref Vpc, !Ref VpcId ]
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
@@ -485,4 +501,229 @@ Resources:
           CidrIp: 0.0.0.0/0
       Tags:
       - Key: Name
-        Value: $(AWS::StackName)
+        Value: !Ref 'AWS::StackName'
+
+  AgentScaleUpPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Condition: UseAutoscaling
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref AgentAutoScaleGroup
+      Cooldown: 300
+      ScalingAdjustment : !Ref ScaleUpAdjustment
+
+  AgentScaleDownPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Condition: UseAutoscaling
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref AgentAutoScaleGroup
+      Cooldown: 300
+      ScalingAdjustment: !Ref ScaleDownAdjustment
+
+  AgentUtilizationAlarmHigh:
+   Type: AWS::CloudWatch::Alarm
+   Condition: UseAutoscaling
+   Properties:
+      AlarmDescription: Scale-up if ScheduledJobs > 0 for 1 minute
+      MetricName: ScheduledJobsCount
+      Namespace: Buildkite
+      Statistic: Minimum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 0
+      AlarmActions: [ !Ref AgentScaleUpPolicy ]
+      Dimensions:
+        - Name: Queue
+          Value: !Ref BuildkiteQueue
+      ComparisonOperator: GreaterThanThreshold
+
+  AgentUtilizationAlarmLow:
+   Type: AWS::CloudWatch::Alarm
+   Condition: UseAutoscaling
+   Properties:
+      AlarmDescription: Scale-down if UnfinishedJobs == 0 for N minutes
+      MetricName: UnfinishedJobsCount
+      Namespace: Buildkite
+      Statistic: Maximum
+      Period: !Ref ScaleDownPeriod
+      EvaluationPeriods: 1
+      Threshold: 0
+      AlarmActions: [ !Ref AgentScaleDownPolicy ]
+      Dimensions:
+        - Name: Queue
+          Value: !Ref BuildkiteQueue
+      ComparisonOperator: LessThanOrEqualToThreshold
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Condition: CreateMetricsStack
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+
+  LambdaExecutionPolicy:
+    DependsOn: LambdaExecutionRole
+    Type: AWS::IAM::Policy
+    Condition: CreateMetricsStack
+    Properties:
+      PolicyName: AccessToCloudwatchForBuildkiteMetrics
+      Roles:
+      - !Ref LambdaExecutionRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+          - cloudwatch:PutMetricData
+          - autoscaling:SetInstanceHealth
+          Resource:
+          - "*"
+
+  BuildkiteMetricsFunction:
+    Type: AWS::Lambda::Function
+    DependsOn:
+    - LambdaExecutionRole
+    - LambdaExecutionPolicy
+    Condition: CreateMetricsStack
+    Properties:
+      Code:
+        S3Bucket: !FindInMap [ MetricsLambdaBucket, !Ref 'AWS::Region', Bucket]
+        S3Key: "buildkite-metrics-v1.4.1-lambda.zip"
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Timeout: 60
+      Handler: handler.handle
+      Runtime: python2.7
+      MemorySize: 128
+      Environment:
+        Variables:
+          BUILDKITE_TOKEN: !Ref BuildkiteApiAccessToken
+          BUILDKITE_ORG: !Ref BuildkiteOrgSlug
+          BUILDKITE_QUEUE: !Ref BuildkiteQueue
+
+  ScheduledRule:
+    Type: "AWS::Events::Rule"
+    Condition: CreateMetricsStack
+    Properties:
+      Description: "ScheduledRule"
+      ScheduleExpression: "rate(1 minute)"
+      State: "ENABLED"
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - "BuildkiteMetricsFunction"
+              - "Arn"
+          Id: "TargetBuildkiteMetricsFunction"
+
+  PermissionForEventsToInvokeLambda:
+    Type: "AWS::Lambda::Permission"
+    Condition: CreateMetricsStack
+    Properties:
+      FunctionName: !Ref BuildkiteMetricsFunction
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn:
+        Fn::GetAtt:
+          - "ScheduledRule"
+          - "Arn"
+
+  Vpc:
+    Type: AWS::EC2::VPC
+    Condition: CreateVpcResources
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+
+  Gateway:
+    Type: AWS::EC2::InternetGateway
+    Condition: CreateVpcResources
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    DependsOn: Gateway
+    Condition: CreateVpcResources
+    Properties:
+      InternetGatewayId: !Ref Gateway
+      VpcId: !Ref Vpc
+
+  Subnet0:
+    Type: AWS::EC2::Subnet
+    Condition: CreateVpcResources
+    Properties:
+      AvailabilityZone: !If [
+        "UseSpecifiedAvailabilityZones",
+        !Select [ 0, !Ref AvailabilityZones ],
+        !Select [ 0, !GetAZs '' ]
+      ]
+      CidrBlock: 10.0.1.0/24
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Condition: CreateVpcResources
+    Properties:
+      AvailabilityZone: !If [
+        "UseSpecifiedAvailabilityZones",
+        !Select [ 1, !Ref AvailabilityZones ],
+        !Select [ 1, !GetAZs '' ]
+      ]
+      CidrBlock: 10.0.2.0/24
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+
+  Routes:
+    Type: AWS::EC2::RouteTable
+    Condition: CreateVpcResources
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+
+  RouteDefault:
+    Type: AWS::EC2::Route
+    Condition: CreateVpcResources
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref Gateway
+      RouteTableId: !Ref Routes
+
+  Subnet0Routes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: CreateVpcResources
+    Properties:
+      SubnetId: !Ref Subnet0
+      RouteTableId: !Ref Routes
+
+  Subnet1Routes:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: CreateVpcResources
+    Properties:
+      SubnetId: !Ref Subnet1
+      RouteTableId: !Ref Routes
