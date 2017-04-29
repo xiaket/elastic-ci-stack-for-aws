@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Buildkite stack"
+Description: "Buildkite stack __VERSION__"
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -250,7 +250,19 @@ Conditions:
 
 Mappings:
   AWSRegion2AMI:
-    us-east-1     : { AMI: "" }
+    us-east-1 : { AMI: "" }
+    us-east-2 : { AMI: "" }
+    us-west-1 : { AMI: "" }
+    us-west-2 : { AMI: "" }
+    eu-west-1 : { AMI: "" }
+    eu-west-2 : { AMI: "" }
+    eu-central-1 : { AMI: "" }
+    ap-northeast-1 : { AMI: "" }
+    ap-northeast-2 : { AMI: "" }
+    ap-southeast-1 : { AMI: "" }
+    ap-southeast-2 : { AMI: "" }
+    ap-south-1 : { AMI: "" }
+    sa-east-1 : { AMI: "" }
 
   ECRManagedPolicy:
     none      : { Policy: '' }
@@ -398,7 +410,7 @@ Resources:
           !Sub |
             #!/bin/bash -xv
             BUILDKITE_STACK_NAME="${AWS::StackName}" \
-            BUILDKITE_STACK_VERSION=dev \
+            BUILDKITE_STACK_VERSION=__VERSION__ \
             BUILDKITE_SECRETS_BUCKET="${SecretsBucket}" \
             BUILDKITE_AGENT_TOKEN="${BuildkiteAgentToken}" \
             BUILDKITE_AGENTS_PER_INSTANCE="${AgentsPerInstance}" \

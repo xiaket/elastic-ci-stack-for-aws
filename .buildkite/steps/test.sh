@@ -102,7 +102,11 @@ cat << EOF > config.json
   {
     "ParameterKey": "ECRAccessPolicy",
     "ParameterValue": "readonly"
-  }
+  },
+  {
+    "ParameterKey": "ImageId",
+    "ParameterValue": "${image_id}"
+  },
 ]
 EOF
 
