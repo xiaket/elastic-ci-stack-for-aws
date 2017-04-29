@@ -42,7 +42,7 @@ steps:
     name: "Publishing :cloudformation: stack"
     agents:
       queue: aws-stack
-    artifact_paths: "templates/mappings.yml;build/aws-stack.json"
+    artifact_paths: "stacks/buildkite-elastic.yml,mappings.yml"
     concurrency_group: "aws-stack-publish"
     concurrency: 1
 

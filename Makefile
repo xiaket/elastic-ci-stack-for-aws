@@ -10,10 +10,6 @@ build-ami: config.json
 		--arg image "$$(grep -Eo 'us-east-1: (ami-.+)' packer.output | cut -d' ' -f2)" \
 		config.json > config.json
 
-update-version:
-	git fetch --tags
-	sed  -i.bak "s/__VERSION__/$(shell git describe --tags --candidates=1)/" $(TEMPLATE)
-
 config.json:
 	test -s config.json || $(error Please create a config.json file)
 
