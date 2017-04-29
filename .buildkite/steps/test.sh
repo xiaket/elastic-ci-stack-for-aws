@@ -110,22 +110,14 @@ cat << EOF > config.json
 ]
 EOF
 
-version=$(git describe --tags --candidates=1)
+make validate
 
-cat << EOF > templates/mappings.yml
-Mappings:
-  AWSRegion2AMI:
-    us-east-1     : { AMI: $image_id }
-EOF
-
-make setup build validate
-
-echo "--- Creating stack $stack_name ($version)"
+echo "--- Creating stack $stack_name ($(git describe --tags --candidates=1))"
 aws cloudformation create-stack \
   --output text \
   --stack-name "$stack_name" \
   --disable-rollback \
-  --template-body "file://${PWD}/build/aws-stack.json" \
+  --template-body "file://${PWD}/buildkite-elastic.yml" \
   --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
   --parameters "$(cat config.json)"
 

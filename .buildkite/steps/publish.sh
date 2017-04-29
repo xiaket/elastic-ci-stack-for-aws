@@ -148,6 +148,7 @@ version=$(git describe --tags --candidates=1)
 
 echo "--- Generating description for version ${version}"
 sed  -i.bak "s/__VERSION__/${version}/" "$TEMPLATE_FILE"
+sed  -i.bak "s/Buildkite stack dev/Buildkite stack ${version}/" "$TEMPLATE_FILE"
 
 echo "--- Generating mappings"
 generate_mappings
