@@ -113,13 +113,7 @@ EOF
 make validate
 
 echo "--- Creating stack $stack_name ($(git describe --tags --candidates=1))"
-aws cloudformation create-stack \
-  --output text \
-  --stack-name "$stack_name" \
-  --disable-rollback \
-  --template-body "file://${PWD}/templates/buildkite-elastic.yml" \
-  --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
-  --parameters "$(cat config.json)"
+make create-stack "STACK_NAME=$stack_name"
 
 echo "--- Waiting for stack to complete"
 stack_follow "$stack_name"
