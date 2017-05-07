@@ -106,7 +106,7 @@ cat << EOF > config.json
   {
     "ParameterKey": "ImageId",
     "ParameterValue": "${image_id}"
-  },
+  }
 ]
 EOF
 
