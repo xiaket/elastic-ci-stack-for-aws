@@ -2,7 +2,7 @@
 
 STACK_NAME ?= buildkite
 SHELL=/bin/bash -o pipefail
-TEMPLATE=stacks/buildkite-elastic.yml
+TEMPLATE=templates/buildkite-elastic.yml
 
 build-ami: config.json
 	cd packer/; packer build buildkite-ami.json | tee ../packer.output

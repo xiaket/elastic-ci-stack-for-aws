@@ -21,7 +21,7 @@ DESTINATION_REGIONS=(
 DESTINATION_AMIS=(
 )
 
-TEMPLATE_FILE=stacks/buildkite-elasti.yml
+TEMPLATE_FILE=templates/buildkite-elastic.yml
 MAPPINGS_FILE=mappings.yml
 
 is_tag_build() {
