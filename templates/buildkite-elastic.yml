@@ -128,9 +128,10 @@ Parameters:
     Default: ""
 
   InstanceType:
-    Description: Instance type
+    Description: Instance type (Must support HVM, see https://aws.amazon.com/amazon-linux-ami/instance-type-matrix/)
     Type: String
     Default: t2.nano
+    AllowedPattern: ^(?!t1|m1).+
     MinLength: 1
 
   SpotPrice:
