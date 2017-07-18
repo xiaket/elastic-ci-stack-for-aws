@@ -7,6 +7,12 @@ steps:
     command: .buildkite/steps/lint.sh
     agents:
       queue: "${BUILDKITE_AGENT_META_DATA_QUEUE}"
+  - label: ":bash: Unit Tests"
+    agents:
+      queue: "${BUILDKITE_AGENT_META_DATA_QUEUE}"
+    plugins:
+      docker-compose#v1.3.2:
+        run: unit-tests
 
   - wait
   - name: ":packer: Build"
@@ -25,7 +31,7 @@ steps:
 
   - wait
   - name: ":buildkite: Instance test"
-    command: "/usr/local/bin/bats --pretty tests/"
+    command: "/usr/local/bin/bats --pretty tests/integration/"
 
     timeout_in_minutes: 5
     agents:
