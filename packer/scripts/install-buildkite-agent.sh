@@ -63,3 +63,9 @@ echo "Copying built-in plugins..."
 sudo mkdir -p /usr/local/buildkite-aws-stack/plugins
 sudo cp -a /tmp/plugins/* /usr/local/buildkite-aws-stack/plugins/
 sudo chown -R buildkite-agent: /usr/local/buildkite-aws-stack
+
+echo "Checking aws-cli versions"
+aws --version
+which aws
+sudo -H -u buildkite-agent aws --version 
+sudo -H -u buildkite-agent which aws

@@ -3,8 +3,6 @@ set -eu -o pipefail
 
 echo "Updating awscli..."
 sudo pip install --upgrade --user awscli
-aws --version
-sudo -H -u buildkite-agent aws --version 
 
 echo "Installing zip utils..."
 sudo yum update -y -q
