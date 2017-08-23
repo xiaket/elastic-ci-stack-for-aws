@@ -1,16 +1,22 @@
 {
+  "variables": {
+    "source_ami": "ami-643b1972",
+    "region": "us-east-1",
+    "instance_type": "m4.large",
+    "ami_groups": "all"
+  },
   "builders": [
     {
       "type": "amazon-ebs",
-      "region": "us-east-1",
-      "source_ami": "ami-643b1972",
-      "instance_type": "i3.large",
+      "region": "{{user `region`}}",
+      "source_ami": "{{user `source_ami`}}",
+      "instance_type": "{{user `instance_type`}",
       "spot_price": "auto",
       "spot_price_auto_product": "Linux/UNIX (Amazon VPC)",
       "ssh_username": "ec2-user",
       "ami_name": "buildkite-stack-{{isotime | clean_ami_name}}",
       "ami_description": "Buildkite CloudFormation Stack base image (Amazon Linux, buildkite-agent, docker, docker-compose, docker-gc, jq)",
-      "ami_groups": ["all"]
+      "ami_groups": ["{{user `ami_groups`}}"]
     }
   ],
   "provisioners": [
