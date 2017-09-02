@@ -25,7 +25,9 @@ steps:
 
   - wait
   - name: ":buildkite: Instance test"
-    command: "/usr/local/bin/bats --pretty tests/"
+    command: 
+      - "/usr/local/bin/bats --pretty tests/"
+      - aws --version
 
     timeout_in_minutes: 5
     agents:
