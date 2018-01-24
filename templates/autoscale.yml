@@ -9,14 +9,14 @@ Resources:
       Cooldown: 300
       ScalingAdjustment : { Ref: ScaleUpAdjustment }
 
-  AgentScaleDownPolicy:
-    Type: AWS::AutoScaling::ScalingPolicy
-    Condition: UseAutoscaling
-    Properties:
-      AdjustmentType: ChangeInCapacity
-      AutoScalingGroupName: { Ref: AgentAutoScaleGroup }
-      Cooldown: 300
-      ScalingAdjustment: { Ref: ScaleDownAdjustment }
+  # AgentScaleDownPolicy:
+  #   Type: AWS::AutoScaling::ScalingPolicy
+  #   Condition: UseAutoscaling
+  #   Properties:
+  #     AdjustmentType: ChangeInCapacity
+  #     AutoScalingGroupName: { Ref: AgentAutoScaleGroup }
+  #     Cooldown: 300
+  #     ScalingAdjustment: { Ref: ScaleDownAdjustment }
 
   AgentUtilizationAlarmHigh:
    Type: AWS::CloudWatch::Alarm
@@ -35,19 +35,35 @@ Resources:
           Value: { Ref: BuildkiteQueue }
       ComparisonOperator: GreaterThanThreshold
 
-  AgentUtilizationAlarmLow:
-   Type: AWS::CloudWatch::Alarm
-   Condition: UseAutoscaling
-   Properties:
-      AlarmDescription: Scale-down if UnfinishedJobs == 0 for N minutes
-      MetricName: UnfinishedJobsCount
-      Namespace: Buildkite
-      Statistic: Maximum
-      Period: { Ref: ScaleDownPeriod }
-      EvaluationPeriods: 1
-      Threshold: 0
-      AlarmActions: [ { Ref: AgentScaleDownPolicy } ]
-      Dimensions:
-        - Name: Queue
-          Value: { Ref: BuildkiteQueue }
-      ComparisonOperator: LessThanOrEqualToThreshold
+  # AgentUtilizationAlarmLow:
+  #  Type: AWS::CloudWatch::Alarm
+  #  Condition: UseAutoscaling
+  #  Properties:
+  #     AlarmDescription: Scale-down if UnfinishedJobs == 0 for N minutes
+  #     MetricName: UnfinishedJobsCount
+  #     Namespace: Buildkite
+  #     Statistic: Maximum
+  #     Period: { Ref: ScaleDownPeriod }
+  #     EvaluationPeriods: 1
+  #     Threshold: 0
+  #     AlarmActions: [ { Ref: AgentScaleDownPolicy } ]
+  #     Dimensions:
+  #       - Name: Queue
+  #         Value: { Ref: BuildkiteQueue }
+  #     ComparisonOperator: LessThanOrEqualToThreshold
+
+  IdleAgentScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Condition: UseAutoscaling
+    Properties:
+      AutoScalingGroupName: { Ref: AgentAutoScaleGroup }
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        CustomizedMetricSpecification:
+          MetricName: IdleAgentCount
+          Namespace: Buildkite
+          Statistic: Maximum
+          Dimensions:
+            - Name: Queue
+              Value: { Ref: BuildkiteQueue }
+        TargetValue: 0
