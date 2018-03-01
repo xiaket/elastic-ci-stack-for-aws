@@ -38,6 +38,8 @@ cwlogs = cwlogs
 region = $AWS_REGION
 EOF
 
+service awslogs restart || true
+
 PLUGINS_ENABLED=()
 [[ $SECRETS_PLUGIN_ENABLED == "true" ]] && PLUGINS_ENABLED+=("secrets")
 [[ $ECR_PLUGIN_ENABLED == "true" ]] && PLUGINS_ENABLED+=("ecr")
