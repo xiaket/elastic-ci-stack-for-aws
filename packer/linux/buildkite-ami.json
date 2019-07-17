@@ -46,6 +46,10 @@
     },
     {
       "type": "shell",
+      "script": "scripts/install-firecracker.sh"
+    },
+    {
+      "type": "shell",
       "script": "scripts/install-buildkite-agent.sh"
     },
     {

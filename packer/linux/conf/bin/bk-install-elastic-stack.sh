@@ -161,6 +161,10 @@ fi
 systemctl enable "buildkite-agent"
 systemctl start "buildkite-agent"
 
+if [[ "${BUILDKITE_FIRECRACKER_ENABLED:-}" == "true" ]] ; then
+  printf "bootstrap-script=%q\n" "/usr/local/bin/bk-firecracker-bootstrap.sh" >> /etc/buildkite-agent/buildkite-agent.cfg
+fi
+
 # let the stack know that this host has been initialized successfully
 /opt/aws/bin/cfn-signal \
 	--region "$AWS_REGION" \

@@ -363,6 +363,14 @@ Parameters:
       - "false"
     Default: "false"
 
+  EnableFirecrackerIsolation:
+    Type: String
+    Description: Enables the firecracker isolation of every running job, requires a bare-metal instance
+    AllowedValues:
+      - "true"
+      - "false"
+    Default: "false"
+
 Outputs:
   ManagedSecretsBucket:
     Value:
@@ -802,6 +810,7 @@ Resources:
                   BUILDKITE_ECR_POLICY=${ECRAccessPolicy} \
                   BUILDKITE_TERMINATE_INSTANCE_AFTER_JOB=${BuildkiteTerminateInstanceAfterJob} \
                   BUILDKITE_ADDITIONAL_SUDO_PERMISSIONS=${BuildkiteAdditionalSudoPermissions} \
+                  BUILDKITE_FIRECRACKER_ENABLED=${EnableFirecrackerIsolation} \
                   AWS_DEFAULT_REGION=${AWS::Region} \
                   SECRETS_PLUGIN_ENABLED=${EnableSecretsPlugin} \
                   ECR_PLUGIN_ENABLED=${EnableECRPlugin} \
