@@ -651,6 +651,12 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       AccessControl: LogDeliveryWrite
+      Tags:
+        - !If
+          - UseCostAllocationTags
+          - Key: !Ref CostAllocationTagName
+            Value: !Ref CostAllocationTagValue
+          - !Ref "AWS::NoValue"
 
   ManagedSecretsBucket:
     Type: AWS::S3::Bucket
@@ -661,6 +667,12 @@ Resources:
         DestinationBucketName: !Ref ManagedSecretsLoggingBucket
       VersioningConfiguration:
         Status: Enabled
+      Tags:
+        - !If
+          - UseCostAllocationTags
+          - Key: !Ref CostAllocationTagName
+            Value: !Ref CostAllocationTagValue
+          - !Ref "AWS::NoValue"
 
   ManagedSecretsBucketPolicy:
     Type: AWS::IAM::Policy
