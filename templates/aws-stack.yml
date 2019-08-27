@@ -658,6 +658,16 @@ Resources:
               - sns:Unsubscribe
               - sns:Subscribe
             Resource: "*"
+          - Effect: Allow
+            Action:
+              - ssm:DescribeInstanceProperties       
+              - ssm:ListAssociations
+              - ssm:PutInventory
+              - ssm:UpdateInstanceInformation
+              - ssmmessages:CreateControlChannel
+              - ssmmessages:CreateDataChannel          
+              - ssmmessages:OpenControlChannel
+              - ssmmessages:OpenDataChannel
       Roles:
         - !Ref IAMRole
 
