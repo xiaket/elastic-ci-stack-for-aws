@@ -668,6 +668,7 @@ Resources:
               - ssmmessages:CreateDataChannel          
               - ssmmessages:OpenControlChannel
               - ssmmessages:OpenDataChannel
+            Resource: "*"
       Roles:
         - !Ref IAMRole
 
